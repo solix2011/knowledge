@@ -1,4 +1,52 @@
 #########################################################
+# Link
+#########################################################
+https://support.atheros.com/login/amcc/
+User name: amcc
+p/w: HaCm#BAA$1 
+
+VPN
+wvpn.apm.com
+denwvpn.apm.com
+
+#########################################################
+# Useful commands
+#########################################################
+------------------------------------------------------------
+- Use screen to connect
+------------------------------------------------------------
+screen /dev/ttyUSB0 115200
+or.
+screen /dev/ttyS0 115200
+
+------------------------------------------------------------
+- Change mac address on Linux
+------------------------------------------------------------
+ifconfig br0 hw ether 00:1b:b1:e8:7b:f0
+ifconfig eth0 hw ether 00:1b:b1:e8:7b:b0
+
+------------------------------------------------------------
+- Run oprofile on Linux
+------------------------------------------------------------
+opcontrol --init
+opcontrol --vmlinux=/mnt/vmlinux  (assuming vmlinux is in /root directory)
+opcontrol --start
+opcontrol --reset
+wait for a few seconds
+opcontrol --dump
+wait for a few seconds
+opcontrol --dump
+wait for a few seconds
+opcontrol --dump (couple of more times to collect more samples in profiling buffer)
+opreport -l ./vmlinux 
+
+------------------------------------------------------------
+- Others
+------------------------------------------------------------
+./hexdump -C -n 2048 /dev/mtdblock2
+./hexdump -C -n 2048 /dev/mtdblock3
+
+#########################################################
 # Console Server
 #########################################################
 
@@ -22,3 +70,103 @@ Take actions:
      7- Cancel
 Press <ESC>- Back anytime to get back the previous screen
 
+#########################################################
+# Perforce
+#########################################################
+export P4PORT=ipcswsvdcp4:1666
+export P4CLIENT=nvo_swlab02
+export P4DIFF=/usr/bin/diff
+export P4USER=nvo
+
+------------------------------------------------------------
+- Create workspace
+------------------------------------------------------------
+
+p4 client -o <workspace_name>
+Ex: p4 client -o hcmlab03
+p4 client -o nvo_swlab03
+Then run:
+p4 client ---> to save ws
+
+------------------------------------------------------------
+- Get code
+------------------------------------------------------------
+p4 sync //refPlatforms/kronborg3/...#head
+p4 sync //refPlatforms/lighting_gateway/...#head
+p4 sync //refPlatforms/wailea/...#head
+
+p4 sync //processor/lanai/...#head
+p4 sync //refPlatforms/common/3rd-drivers/switch/...
+
+------------------------------------------------------------
+- Create new branch
+------------------------------------------------------------
+p4 integrate //processor/lanai/... //refPlatforms/sony/...
+submit
+--->>> initial branch
+
+p4 integrate //refPlatforms/lighting_gateway/uboot/board/amcc/lighting_gateway/chip_config.c //refPlatforms/sony/uboot/board/amcc/sony/chip_config.c
+p4 integrate //refPlatforms/lighting_gateway/uboot/board/amcc/lighting_gateway/config.mk //refPlatforms/sony/uboot/board/amcc/sony/config.mk
+
+------------------------------------------------------------
+- Revert
+------------------------------------------------------------
+p4 revert //refPlatforms/sony/uboot/nand_spl/board/amcc/...
+p4 revert amcc/...
+
+p4 revert //refPlatforms/sony/uboot/nand_tpl/board/amcc/...
+
+------------------------------------------------------------
+- diff
+------------------------------------------------------------
+p4 diff -sa ...#head
+p4 diff -f drivers/mtd/nand/ufc.c
+
+------------------------------------------------------------
+- show change list
+------------------------------------------------------------
+p4 changes ...
+p4 changes -m 5 //depot/project/...
+p4 describe -ds 33495
+p4 describe -dc 33495 ==> show full
+
+------------------------------------------------------------
+- displays the revision number for each line of a revision (or range of revisions) of a file (or files) 
+------------------------------------------------------------
+p4 annotate include/configs/wailea.h | less
+
+
+------------------------------------------------------------
+- Submit change list with bugzilla
+------------------------------------------------------------
+p4 submit
+^CError detected while processing /user/hcm/yvo/.vim/plugin/matchit.vim:
+line    1:
+Interrupted
+Error detected while processing /user/hcm/yvo/.vim/plugin/taglist.vim:
+line    1:
+Interrupted
+Interrupt: Press ENTER or type command to continue
+Change 37595 created with 9 open file(s).
+Submitting change 37595.
+Locking 9 files ...
+Submit validation failed -- fix problems then use 'p4 submit -c 37595'.
+'must_have_fix' validation failed: Client nvo_swlab02 user nvo.
+Change 37595 doesn't fix anything.
+P4 result is .
+User name: nvo
+Client name: nvo_swlab02
+Client host: svdcperf01
+Client root: /AMCC/yvo/working/workspace
+Current directory: /perforce/p4db
+Client address: 10.66.16.103:59354
+Server address: svdcperf01:1666
+Server root: /perforce/p4db
+Server date: 2012/04/03 20:08:44 -0700 PDT
+Server version: P4D/LINUX26X86_64/2007.2/164725 (2008/09/12)
+Server license: Applied Micro Circuits Corp (AMCC) 162 users (support ends 2012/10/18)
+p4 change 37595
+p4 fix  -c 37595 -s assigned bug25457; p4 submit -c 37595
+
+p4 change 38568
+p4 fix  -c 38568 -s assigned bug25001; p4 submit -c 38568
