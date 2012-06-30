@@ -1,0 +1,316 @@
+threshold_u-boot.bin
+setenv yvo_env 'setenv bootfile threshold/threshold_uImage.bin; setenv fdt_file threshold/threshold.dtb; setenv rootpath /nfsroot/nvo/snapgear'
+
+setenv yvo_env 'setenv bootfile nvo/threshold/uImage; setenv fdt_file nvo/threshold/threshold.dtb; setenv rootpath /nfsroot/nvo/snapgear'
+
+setenv reset_ethernet "echo 'Please run fpga_load before run reset_ethernet'; fpga rm 0x0a 0x1;sleep 1;fpga rm 0x0a 0x0"
+
+setenv test_eth0 'setenv ethact ppc_4xx_eth0;setenv ipaddr 192.168.1.2;setenv netmask 255.255.255.0'
+
+setenv usbargs 'setenv bootargs root=/dev/sda1 rootdelay=10'
+setenv usbargs 'setenv bootargs rw root=/dev/sda1 rootdelay=10'
+setenv net_usb 'tftp ${kernel_addr_r} ${bootfile}; tftp ${fdt_addr_r} ${fdt_file}; run usbargs addip addtty addmisc;bootm ${kernel_addr_r} - ${fdt_addr_r}'
+
+setenv net_nfs 'tftp ${kernel_addr_r} ${bootfile};tftp ${fdt_addr_r} ${fdt_file};run nfsargs addip addtty addmisc;bootm ${kernel_addr_r} - ${fdt_addr_r}'
+
+setenv udiag_net 'tftp 0x100000 ${udiag_file};go 0x102100'
+
+setenv uboot 'tftp 0x1000000 ${uboot_file};go 0x1002100'
+
+////////////////////////////////////////////////////////////////////////
+Sang:  * GPIO Expander Registers */
+
+#define GPIO_EXP_USB2NAND_RST_N 0x80 //port 7
+
+#define GPIO_EXP_USBCTRL_RST_N 0x40 //port 6
+#define GPIO_EXP_ETHSW_RST_N 0x20 //port 5
+#define GPIO_EXP_GPIO_EXP_TEMP_IOEXP_OVER 0x10 //port 4
+#define GPIO_EXP_IOEXP_FPGA_NSTATUS 0x08 //port 3
+#define GPIO_EXP_FPGA_IOEXP_CONF_DONE 0x04 //port 2
+#define GPIO_EXP_FPGA_RSTB 0x02 //port 1
+#define GPIO_FPGA_RESET_UART 0x01 //port 0
+
+////////////////////////////////////////////////////////////////////////
+vncviewer 10.38.6.167:1
+screen -xS threshold -R
+
+# important env variables
+pciconfighost=1
+pcie_mode=RP:RP
+ethaddr=00:01:71:ec:00:10
+eth1addr=00:01:71:ec:00:10
+eupdate=eeprom write 0x152 0x200000 0x20 0x1000
+supdate=sf erase 0 0xc8000;sf write 0x200000 0 0xc8000
+
+////////////////////////////////////////////////////////////////////////
+# To boot linux
+BDI>
+h;load 0x400000 uImage bin;load 0x800000 threshold.dtb bin;load 0x900000 uRamdisk.nofpu bin
+
+h;load 0x400000 nvo/threshold/uImage bin;load 0x800000 nvo/threshold/threshold.dtb bin;load 0x900000 nvo/threshold/uRamdisk bin
+
+h;load 0x400000 nvo/threshold/uImage bin;load 0x800000 nvo/threshold/threshold.dtb bin;load 0x900000 nvo/threshold/uRamdisk_threshold bin
+
+h;load 0x400000 nvo/threshold/uImage bin
+load 0x800000 nvo/threshold/threshold.dtb bin
+load 0x900000 spham/threshold/uRamdisk.nofpu bin
+load 0x900000 nvo/threshold/uRamdisk_threshold bin
+
+BDI> go <Current PC>
+run ramargs addip addtty;bootm 400000 900000 800000
+
+# To run u-boot.bin (NUB)
+BDI>
+res h;load 0x1000000 nvo/threshold/u-boot.bin bin;go 0x1002100
+res h;load 0x1000000 threshold/threshold_u-boot.bin bin;go 0x1002100
+
+load 0x1000000 spham/threshold/u-boot.bin bin;go 0x1002100
+
+tftpload 100000 nvo/threshold/u-boot.bin; go 102100
+
+////////////////////////////////////////////////////////////////////////
+# SPI update
+BDI>
+
+h;load 0x200000 nvo/threshold/u-boot-spl.bin bin;load 0x400000 nvo/threshold/u-boot.bin bin
+=>
+sf probe 0:0
+sf erase 0x0 80000
+sf write 0x400000 0x0 0x80000
+
+i2c mw 0x52 0x20.2 0x200000 0x1000
+
+i2c wr 0x52 0x20.0 0x200000 0x1000
+reset
+
+# SPI update from u-boot
+=> sf probe 0:0
+
+=> tftp 0x400000 nvo/threshold/u-boot.bin
+=> sf erase 0x0 0x80000
+=> sf write 0x400000 0x0 0x80000
+
+=> tftp 0x200000 nvo/threshold/u-boot-spl.bin
+=> i2c wr 0x52 0x20.0 0x200000 0x1000
+=> reset
+
+BDI>
+tftp 0x400000 nvo/threshold/fpga_c006_rbf bin
+sf write 0x400000 0x100000 0x20000
+
+fpga load 100000 13256
+
+(10:18:23 AM) Sang Pham: fpga load <image addr> <image_size>
+(10:18:30 AM) Sang Pham: image_size = 13256
+
+////////////////////////////////////////////////////////////////////////
+halt;load 0xfffe0000 spham/threshold/uDiag-threshold-ocm-spi.bin bin;go 0xfffe2100
+
+halt;load 0xfffe0000 threshold/ntran/uDiag-threshold-ocm-spi.bin bin;go 0xfffe2100
+halt;load 0x100000 threshold/ntran/uDiag-threshold-ddr-spi.bin bin;go 0x102100
+load 0x100000 spham/threshold/uDiag-threshold-spi.bin bin;go 0x102100
+
+#uDiag
+h;load 0x200000 spham/threshold/uDiag-threshold-i2c.bin bin;load 0x400000 spham/threshold/uDiag-threshold-spi.bin bin
+
+#Value of EPROM to boot (u-boot) from SPI:
+i2c md 52 0.2 20
+0000: 13 24 82 a2 00 00 00 00 00 00 00 00 c0 00 00 00    .$..............
+0010: 0f c0 00 00 3b 0f 80 00 e0 00 00 00 00 00 00 00    ....;...........
+i2c md 52 0.2 20
+0000: 13 24 82 a2 00 00 00 00 00 00 00 00 c0 00 00 00    .$..............
+0010: 0f c0 00 00 3b 0f c0 00 e0 00 00 00 00 00 00 00    ....;...........
+uDiag >
+
+#USB-NAND CY7C68023 - OTG
+- Need enable OTG driver at kernel
+- Format NAND Flash follow format of CY7C (Connect NAND Flash to PC & use the tool at CY7C to format - Validation do it).
+- 
+
+pcf8574 device 0x38
+pcf8574 output pin 5/6/7 value
+
+Set 0 to reset, then set 1, then wait then do s.t
+
+#U-Boot: Fixed to use eth1.
+--- include/configs/threshold.h	(revision 245)
++++ include/configs/threshold.h	(revision 249)
+@@ -251,6 +251,7 @@
+ #define CONFIG_EMAC1_ENABLED
+ #define CONFIG_HAS_ETH1		1
+ #define CONFIG_PHY1_ADDR	4	/* PHY address, See schematics	*/
++#define CONFIG_ETHPRIME		"ppc_4xx_eth1"
+
+
+#ROOT UVan
+Server 02:
+/nfsroot/40x/release/nfs-r.00-07/
+
+
+setenv ethaddr 00:01:71:ec:00:a0
+setenv eth1addr 00:01:71:ec:00:a1
+setenv ethprime ppc_4xx_eth1
+setenv ethact ppc_4xx_eth1
+
+setenv serverip 10.38.12.13
+setenv serverip 10.38.7.140
+
+setenv bootfile threshold/threshold_uImage.bin
+
+#Atheros
+
+insmod adf.ko
+insmod asf.ko
+insmod ath_rate_atheros.ko
+insmod ath_hal.ko
+insmod ath_dev.ko
+insmod umac.ko
+
+insmod ath_pktlog.ko
+
+#Error PCI0 (error message in uboot)
+
+PCIE0: successfully set as rootpoint
+        00  02  0001  1401  0000  00
+        00  06  0003  0001  0000  00
+
+
+setenv bootfile local_release/wailea/20110104/wailea_uImage.bin
+setenv fdt_file nvo/threshold/wailea.dtb
+
+
+# dmesg                                 
+asf: module license 'Proprietary' taints kernel.
+Disabling lock debugging due to kernel taint
+ath_rate_atheros: Copyright (c) 2001-2005 Atheros Communications, Inc, All Right
+ath_hal: 0.9.17.1 (AR5212, AR5416, AR9380, RF5111, RF5112, RF2413, RF5413, RF231
+ath_dev: Copyright (c) 2001-2007 Atheros Communications, Inc, All Rights Reserve
+ath_pci: 0.9.4.5 (Atheros/multi-bss)
+ath_dev_attach: unable to attach hardware; HAL status 1
+
+./hal/ah.h:74:    HAL_ENXIO       = 1,    /* No hardware present */
+
+res h;load 0x1000000 nvo/threshold/u-boot.bin bin;go 0x1002100
+
+
+MAL error occured.... ISR = c6100010 UIC = 50000000     MAL_DEF = 71000000  MAL_ERR= 70000000
+out_be32(&p->vtpid, 0x07ff);
+
+SF: Unsupported SPANSION ID 2018 0461
+
+=> sf probe 0
+SF: Got idcode 01 20 18 03 01
+16384 KiB S25FL128P_64K at 0:0 is now current device
+
+#define SPSN_ID_S25FL128P   0x2018
+#define SPSN_EXT_ID_S25FL128P_64KB  0x0301
+jedec = 0x012018, ext_jedec = 0x000301
+
+
+
+####################
+
+tbusd -d &
+nano-X -p &
+
+alertd -d &
+
+menud -d &
+sleep 2
+
+tdev_managerd &
+bsd &
+statemgrd -d &
+eventd -d &
+requestd -d &
+schedulerd -d &
+fpgad &
+  
+
+insmod usmc touch_pad_pid=$GET_TP_PID fpga_fifo_pid=$GET_FPGA_FIFO_PID
+
+insmod usmc.ko touch_pad_pid=1126 fpga_fifo_pid=1128
+
+
+setenv bootfile nvo/threshold/_BUILDS/linux_bins/threshold_uImage.bin
+setenv fdt_file nvo/threshold/_BUILDS/linux_bins/threshold.dtb
+
+nvo/threshold/_BUILDS/uboot_bins/threshold_u-boot.bin
+nvo/threshold/_BUILDS/uboot_bins/threshold_u-boot-spl.bin
+
+
+=> tftp 0x400000 threshold/threshold_u-boot.bin
+
+=> tftp 0x400000 nvo/threshold/_BUILDS/uboot_bins/threshold_u-boot.bin
+=> sf erase 0x0 0x80000
+=> sf write 0x400000 0x0 0x80000
+
+=> tftp 0x200000 nvo/threshold/_BUILDS/uboot_bins/threshold_u-boot-spl.bin
+=> i2c wr 0x52 0x20.0 0x200000 0x1000
+=> reset
+
+
+res h;load 0x1000000 threshold/threshold_u-boot.bin;go 0x1002100
+
+tftp 0x400000 nvo/threshold/fpga_c006_rbf bin
+sf erase 0x100000 0x20000
+sf write 0x400000 0x100000 0x20000
+
+
+run ramargs addip addtty addmisc;bootm ${kernel_addr_r} ${ramdisk_addr_r} ${fdt_addr_r}
+
+
+132482a2 00000000 00000000 c0000000    .$..............
+0fc00000 3b0f8000 e0000000 00000000
+
+
+i2c md 0x52 0.2 20
+0000: 13 24 82 a2 00 00 00 00 00 00 00 00 c0 00 00 00    .$..............
+0010: 0f c0 00 00 3b 0f 80 00 e0 00 00 00 00 00 00 00    ....;...........
+=> 
+i2c md 0x52 0.2 20
+0000: 13 24 82 a2 00 00 00 00 00 00 00 00 c0 00 00 00    .$..............
+0010: 0f c0 00 00 3b 0f 80 00 e0 00 00 00 00 00 00 00    ....;...........
+
+######################
+Board #2:
+
+Remote PC Station: è Bench # 40
+Teamview Number and password è TV#: 328 975 979,  P/W: a4zz14
+NPS IP and plug number è NPS IP: 10.66.12.120, Plug #: 2
+BDI IP  è 10.66.12.108
+COM port number on the PC.  è COM1
+
+#Bring up board US
+
+res h; load 0x1000000 threshold/threshold_u-boot.bin;go 0x1002100
+
+i2c md 0x52 0.2 20
+0000: 13 24 82 a2 00 00 00 00 00 00 00 00 c0 00 00 00    .$..............
+0010: 0f c0 00 00 3b 0f 80 00 e0 00 00 00 00 00 00 00    ....;...........
+
+i2c mm 0x52 0x16.2
+80
+.
+
+02:07:31 PM) Thang Nguyen - Validation: telnet 10.66.12.120
+(02:07:52 PM) Thang Nguyen - Validation: NPS>/Boot 2                -> off roi on lai
+(02:08:08 PM) Thang Nguyen - Validation: NPS>/off 2          -> off
+(02:08:15 PM) Thang Nguyen - Validation: NPS>/on 2 ->on
+(02:08:25 PM) Thang Nguyen - Validation: port minh dung la port 2
+(02:13:25 PM) Thang Nguyen - Validation: ah, /Boot 2 thi khoi go /off, /on phia sau
+(02:13:34 PM) Thang Nguyen - Validation: /Boot 2 no se tu off roi on tro lai
+
+
+# lspci -n
+00:00.0 Class 0604: 10e8:9110 (rev 01)
+01:00.0 Class 0280: 168c:0030 (rev 01)
+
+
+You need, scsi_mod, sd_mod, and usb_storage.
+If it doesn't get created (but it shows lines likethese ):
+sda: sda1
+Attached scsi removable disk sda at scsi0, channel 0, id 0, lun 0
+usb-storage: device scan complete
+
+mknod /dev/sda1 b 8 1

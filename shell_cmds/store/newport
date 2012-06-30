@@ -1,0 +1,87 @@
+kernel-requisite:
+	Symbol: IP_ADVANCED_ROUTER [=y]          
+  │ Prompt: IP: advanced router                                                      │  
+  │   Defined at net/ipv4/Kconfig:17                                                 │  
+  │   Depends on: NET [=y] && INET [=y]                                              │  
+  │   Location:                                                                      │  
+  │     -> Networking support (NET [=y])                                             │  
+  │       -> Networking options                                                      │  
+  │         -> TCP/IP networking (INET [=y])
+
+
+
+	Symbol: NETFILTER [=y]
+  │ Prompt: Network packet filtering framework (Netfilter)                           │  
+  │   Defined at net/Kconfig:99                                                      │  
+  │   Depends on: NET [=y]                                                           │  
+  │   Location:                                                                      │  
+  │     -> Networking support (NET [=y])                                             │  
+  │       -> Networking options
+
+
+cmd
+I think this rule is enough
+	iptables -t nat -A POSTROUTING -o your_LAN_interface -s 192.168.1.0/24 -d 192.168.1.0/24 -j MASQUERADE
+
+If it does not work, try (change br0 to your LAN interface and eth1 to your WAN interface)
+	iptables-restore iptable_rules
+
+
+
+###############################################################################
+dnsmasq --conf-file=/tmp/dnsmasq.conf --user=root
+udhcpc -i eth1.2 -p /var/run/udhcpc.pid -s script_file
+udhcpc -i eth1 -p /var/run/udhcpc.pid -s script_file
+
+/var/lib/misc
+
+vi /tmp/dnsmasq.conf
+
+interface=wlan0
+resolv-file=/tmp/dnsmasq.leases
+dhcp-lease-max=50
+dhcp-option=lan,3,192.168.1.1
+dhcp-range=lan,192.168.1.100,192.168.1.149,255.255.255.0,1440m
+
+vi /tmp/resolv.dnsmasq
+nameserver 10.38.18.21
+nameserver 10.38.18.22
+
+
+echo "1" > /proc/sys/net/ipv4/ip_forward
+
+iptables -F
+iptables -P INPUT ACCEPT
+iptables -P OUTPUT ACCEPT 
+iptables -P FORWARD ACCEPT
+
+WAN
+iptables -t nat -A POSTROUTING -o eth1 -j MASQUERADE
+iptables -t nat -A POSTROUTING -o eth1.2 -j MASQUERADE
+iptables -t nat -A POSTROUTING -o eth1.4 -j MASQUERADE
+
+ping 98.137.149.56
+
+vi /etc/resolv.conf
+nameserver 10.38.18.21
+nameserver 10.38.18.22
+nameserver 10.38.18.23
+domain amcc.com
+search amcc.com
+
+
+route add default gateway 10.38.4.1
+
+wget http://www.kernel.org/pub/linux/kernel/v2.6/linux-2.6.35.4.tar.bz2
+wget ftp://ftp.denx.de/pub/u-boot/u-boot-2010.06.tar.bz2
+
+Wireshark:
+tcp.port == 22 || udp.port == 22
+tcp.port == 21 || udp.port == 21
+tcp.port == 80 || udp.port == 80
+
+# ifconfig eth0 down
+ifconfig eth1.2 hw ether 00:80:48:BA:d1:30
+# ifconfig eth0 up
+# ifconfig eth0 |grep HWaddr
+

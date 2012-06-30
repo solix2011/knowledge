@@ -1,0 +1,8 @@
+BDI>
+
+config nvo/kilauea/kilauea.cfg 10.38.7.140
+
+reset halt;unlock;erase 0xfff80000 0x20000 4;prog 0xfff80000 nvo/kilauea/hung_nguyen/uDiag-kilauea-nor.bin;reset r
+
+
+
