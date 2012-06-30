@@ -1,0 +1,122 @@
+#########################MALIBU_LIE######################
+# Keelback SOC
+#
+#
+#########################################################
+#--------------------------------------------------------
+# HW
+#--------------------------------------------------------
+- SOC: Keelback APM867x
+- DDR3: 256MB (MT41J64M16JT-15E IT:G)
+- Lan: SGMII3 RTL8211DN-QFN-88
+- 2 Wifi: PCIe1 & PCIe2
+- Boot : NOR and SPI.
+- NOR (PC28F256P30TFA) : 16bit, 32MB
+- SPI (W25Q128BQ): 32MB
+- I2C EEPROM AT24C256C
+
+#--------------------------------------------------------
+# OCM boot
+#--------------------------------------------------------
+config yvo/BDI3000/keelback_ocm_fam.cfg 10.38.6.253
+reset halt; load 0xfffc0000  yvo/malibulite/u-boot-ocm.bin bin; go 0xfffffffc
+reset halt; load 0xfffc0000  yvo/malibulite/malibu_lite_u-boot-ocm.bin bin; go 0xfffffffc
+
+setenv pci_mode NA:NA
+
+setenv ethaddr 00:12:32:a0:20:44
+setenv eth3addr 00:12:32:a0:22:45
+setenv serverip 10.38.6.253; setenv ipaddr 10.38.5.20;setenv gatewayip 10.38.4.1;setenv netmask 255.255.252.0
+ping 10.38.6.253
+
+setenv enet_xport on:on
+
+#--------------------------------------------------------
+# NOR boot
+#--------------------------------------------------------
+config yvo/malibulite/malibulite.cfg 10.38.6.253
+
+h;host 10.38.6.253; load 0x2000000 yvo/malibulite/u-boot.bin bin;g
+protect off FFFA0000 FFFFFFFF;era FFFA0000 FFFFFFFF;cp.b 0x2000000 FFFA0000 60000; reset
+
+load 0x2000000 malibulite/u-boot.bin bin;g
+
+tftp 0x2000000 yvo/malibulite/u-boot.bin
+
+#--------------------------------------------------------
+# Udiag
+#--------------------------------------------------------
+#uDiag (make malibulite_nor_config) --> Use to load uDiag
+
+config yvo/malibulite/malibulite_ocm_tg.cfg 10.38.6.253
+host 10.38.6.253; res h; load 0xa0001000 yvo/malibulite/uDiag-malibulite-ocm-nor.bin bin; go 0xa0001000
+h;host 10.38.6.253; load 0x2000000 yvo/malibulite/uDiag-malibulite-nor.bin bin;g
+protect off FFF80000 FFFFFFFF;era FFF80000 FFFFFFFF;cp.b 0x2000000 FFF80000 80000;res
+
+h;host 10.38.6.253; load 0x2000000 yvo/malibulite/uDiag-malibulite-nor-good.bin bin;g
+h;host 10.38.6.253; load 0x2000000 yvo/malibulite/uDiag-malibulite-nor-tq.bin bin;g
+
+0xDD8C1F50
+
+tftp 0x2000000 yvo/malibulite/uDiag-malibulite-nor.bin
+
+#--------------------------------------------------------
+# Release 1.01.02
+#--------------------------------------------------------
+
+#OCM
+config yvo/BDI3000/keelback_ocm_fam.cfg 10.38.6.253
+host 10.38.6.253
+reset halt; load 0xfffc0000  yvo/malibulite/release/1.01.02/malibu_lite/images/uboot_bins/ocm/malibu_lite_u-boot-ocm.bin bin; go 0xfffffffc
+
+#NOR
+h;host 10.38.6.253;load 0x2000000 yvo/malibulite/release/1.01.02/malibu_lite/images/uboot_bins/nor/malibu_lite_u-boot.bin bin;g
+protect off FFFA0000 FFFFFFFF;era FFFA0000 FFFFFFFF;cp.b 0x2000000 FFFA0000 60000; reset
+
+setenv user_dir yvo/malibulite/release/1.01.02/malibu_lite/images/uboot_bins/nor/
+
+setenv ethaddr 00:12:32:a0:20:44
+setenv serverip 10.38.6.253; setenv ipaddr 10.38.5.20;setenv gatewayip 10.38.4.1;setenv netmask 255.255.252.0
+ping 10.38.6.253
+
+setenv user_dir yvo/malibulite/release/1.01.02/malibu_lite/images/rootfs/_ROOTFS_IMAGES
+setenv ramdisk_file malibu_lite_uRamdisk.bin
+
+setenv user_dir yvo/malibulite/release/1.01.02/malibu_lite/images/linux_bins;setenv bootfile malibu_lite_uImage.bin;setenv fdt_file malibu_lite.dtb
+
+
+
+tftp 100000 yvo/malibulite/release/1.01.02/malibu_lite/images/rootfs/_ROOTFS_IMAGES/malibu_lite_rootfs.jffs2
+protect off fe800000 +${filesize}; era fe800000 +${filesize}; cp.b 100000 fe800000 ${filesize}
+
+protect off fe800000 +1300000; era fe800000 +1300000; cp.b 100000 fe800000 ${filesize}
+
+sf probe 0:0 16000000; 
+read: sf read 0x2000000 0x0 0x20000
+write: sf write 0x1000000 0x0 0x20000
+erase: sf erase 0x0 0x20000
+
+sf probe 0:0 4000000; sf erase 0x0 0x7b4000
+tftp 0x1000000 vhtnguyen/local_release/malibu_lite/spi_flash_media.img
+sf write 0x1000000 0x0 0x7b4000; sf read 0x2000000 0x0 0x7b4000
+cmp.b 0x1000000 0x2000000 0x7b4000
+sf erase 0x0 0x7b4000; sf read 0x2000000 0 0x7b4000; cmp.b 0x2000000 0x1000000 0x7b4000
+
+## Display MAC configuration
+i2c md 0x52 0x3030.2
+
+## Write MAC address
+i2c mm 0x52 0x3030.2
+
+## Display Board assigned number
+i2c md 0x52 0x304a.2
+
+## Write board assigned number
+i2c mm 0x52 0x304a.2
+
+date  071119352011 /* cmd format: date [MMDDhhmm[[CC]YY][.ss]] */
+
+
+#########################################################
+# END
+#########################################################

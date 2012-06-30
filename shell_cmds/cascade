@@ -1,0 +1,100 @@
+#########################CINNAMON########################
+# Keelback SOC
+#
+# Evaluation board
+#########################################################
+#--------------------------------------------------------
+# HW
+#--------------------------------------------------------
+- SOC: Keelback APM867x
+- ...
+
+#--------------------------------------------------------
+# OCM boot
+#--------------------------------------------------------
+config yvo/BDI3000/keelback_ocm_fam.cfg 10.38.6.253
+host 10.38.6.253;reset halt; load 0xfffc0000 yvo/cascade/ddr/u-boot-ocm.bin bin; go 0xfffffffc
+
+setenv ethaddr 00:12:32:a0:21:44
+setenv eth3addr 00:12:32:a0:21:45
+
+#--------------------------------------------------------
+# NOR boot
+#--------------------------------------------------------
+config BDI3000/cascade.cfg 10.38.6.253
+h;host 10.38.6.253; load 0x2000000 yvo/cascade/debug/u-boot.bin bin;g
+
+protect off FFFA0000 FFFFFFFF;era FFFA0000 FFFFFFFF;cp.b 0x2000000 FFFA0000 60000; reset
+
+tftp 0x2000000 yvo/cascade/u-boot.bin
+
+res h;unlock;erase
+host 10.38.6.253; prog 0xfffa0000 yvo/cascade/ddr/u-boot.bin bin;res r
+
+#--------------------------------------------------------
+# Udiag
+#--------------------------------------------------------
+
+reset halt
+unlock
+era; load 0xfff80000 uDiag-cinnamon-nor.bin bin
+prog 0xfff80000 uDiag-cinnamon-nor.bin bin
+res run
+
+host 10.38.6.253; res h; load 0xa0001000 yvo/cascade/uDiag-cinnamon-ocm-nor.bin bin; go 0xa0001000
+h;host 10.38.6.253; load 0x2000000 yvo/malibulite/uDiag-malibulite-nor.bin bin;g
+protect off FFF80000 FFFFFFFF;era FFF80000 FFFFFFFF;cp.b 0x2000000 FFF80000 80000;res
+
+
+#--------------------------------------------------------
+# Release 1.06.03
+#--------------------------------------------------------
+setenv enet_xport on:on
+setenv user_dir yvo/cascade/release/1.06.03/cascade_sw_up/bin/linux_up;setenv bootfile uImage_up;setenv fdt_file cascade_up_me.dtb;setenv ramdisk_file uRamdisk
+setenv user_dir yvo/cascade/release/1.06.03/cascade_sw_up/bin/linux_up;setenv bootfile uImage_up;setenv fdt_file cascade_up.dtb;setenv ramdisk_file uRamdisk
+
+iperf -c 10.38.5.197 -t 120 -i4
+
+#--------------------------------------------------------
+# DIM infor
+#--------------------------------------------------------
+Cinnamon DIM
+=> i2c  md 0x50 0.1 0xff
+0000: 92 11 0b 02 03 11 00 02 03 11 01 08 0c 00 7e 00    ..............~.
+0010: 69 78 69 3c 69 11 20 89 00 05 3c 3c 01 68 83 05    ixi<i. ...<<.h..
+0020: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00    ................
+0030: 00 00 00 00 00 00 00 00 00 00 00 00 0f 01 02 00    ................
+0040: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00    ................
+0050: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00    ................
+0060: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00    ................
+0070: 00 00 00 00 00 80 2c 0f 11 36 36 2f 55 0e 33 64    ......,..66/U.3d
+0080: 34 4a 54 46 31 32 38 36 34 41 5a 2d 31 47 34 44    4JTF12864AZ-1G4D
+0090: 31 20 44 31 80 2c 00 00 00 00 00 00 00 00 00 00    1 D1.,..........
+00a0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00    ................
+00b0: ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff    ................
+00c0: ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff    ................
+00d0: ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff    ................
+00e0: ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff    ................
+00f0: ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff    ...............
+
+=> i2c md 0x50 0.1 0xff
+0000: 00 10 0b 02 02 11 00 01 0b 52 01 08 0f 00 1e 00    .........R......
+0010: 69 78 69 3c 69 11 2c 95 70 03 3c 3c 01 2c 82 05    ixi<i.,.p.<<.,..
+0020: 80 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00    ................
+0030: 00 00 00 00 00 00 00 00 00 00 00 00 0f 01 03 00    ................
+0040: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00    ................
+0050: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00    ................
+0060: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00    ................
+0070: 00 00 00 00 00 85 9b 00 0b 25 00 00 00 00 25 f1    .........%....%.
+0080: 43 54 31 32 38 37 32 42 41 31 30 36 37 2e 4d 39    CT12872BA1067.M9
+0090: 46 47 00 00 80 2c 00 00 00 00 00 00 00 00 00 00    FG...,..........
+00a0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00    ................
+00b0: ab ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff    ................
+00c0: ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff    ................
+00d0: ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff    ................
+00e0: ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff    ................
+00f0: ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff    ...............
+
+#########################################################
+# END
+#########################################################

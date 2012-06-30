@@ -1,0 +1,140 @@
+#########################RIVERA##########################
+# Keelback SOC
+#
+#
+#########################################################
+
+#--------------------------------------------------------
+# OCM boot
+#--------------------------------------------------------
+host 10.38.6.253
+config yvo/riviera/bdi/riviera_ocm_fam.cfg	
+reset halt;load 0x4ffc0000 yvo/riviera/debug/u-boot-ocm.bin bin;go 0x4ffffffc
+
+# Old OCM version using TEXT_BASE 0xfffa0000
+reset halt;load 0xfffc0000 yvo/riviera/u-boot-ocm.bin bin;go 0xfffffffc
+
+#--------------------------------------------------------
+# NAND boot
+#--------------------------------------------------------
+config yvo/riviera/bdi/riviera_nand.cfg 10.38.6.253 10.38.14.27 
+
+h;load 0x200000 yvo/riviera/u-boot-nand.bin bin;go
+h;load 0x200000 yvo/riviera/debug/u-boot-nand.bin bin;go
+
+reset halt;load 0xfffc0000 yvo/riviera/debug/u-boot-ocm.bin bin;go 0xfffffffc
+reset halt;load 0x4ffc0000 yvo/riviera/u-boot-ocm.bin bin;go 0x4ffffffc
+
+#--------------------------------------------------------
+# NOR boot
+#--------------------------------------------------------
+config yvo/riviera/bdi/riviera.cfg
+config BDI3000/riviera.cfg 10.38.6.253
+
+h;host 10.38.6.253; load 0x2000000 yvo/riviera/u-boot.bin bin;g
+protect off FFFA0000 FFFFFFFF;era FFFA0000 FFFFFFFF;cp.b 0x2000000 FFFA0000 60000; reset
+
+res h;unlock;erase
+host 10.38.6.253; prog 0xfffa0000 yvo/riviera/debug/u-boot.bin bin;res r
+
+setenv ipaddr 10.38.5.25;setenv serverip 10.38.7.140;setenv gatewayip 10.38.4.1;setenv netmask 255.255.252.0
+setenv enet_xport off:on;setenv netdev eth1
+
+
+#--------------------------------------------------------
+# DDR3 debug
+#--------------------------------------------------------
+
+WORK 1050Mhz (ddang)
+(gdb) source ../gdb/ddr3_dump_mcp_udiag.gdb
+$1 = 0x46
+$2 = 0x0
+$3 = 0x1222000
+$4 = 0x1222000
+$5 = 0x9914205
+$6 = 0x44000020
+$7 = 0x0
+$8 = 0xf00f00f
+$9 = 0xf00f
+$10 = 0x2010180d
+$11 = 0x91138cb
+$12 = 0x4281a467
+$13 = 0x488324a
+$14 = 0x0
+$15 = 0x80400f
+$16 = 0x208
+$17 = 0x560f20
+$18 = 0xf0fc60
+$19 = 0xf0fc60
+$20 = 0x210666
+$21 = 0xffff0000
+$22 = 0xff22222
+$23 = 0x2000100
+$24 = 0x8000400
+$25 = 0x304009
+$26 = 0x304009
+$27 = 0x0
+$28 = 0x100b
+$29 = 0x6023
+$30 = 0x0
+$31 = 0x0
+$32 = 0x0
+$33 = 0x0
+$34 = 0x0
+$35 = 0x0
+$36 = 0x0
+$37 = 0x80000
+$38 = 0x0
+$39 = 0x10300018
+$40 = 0xf0003a
+$41 = 0xf0003a
+$42 = 0x7ffffff
+$43 = 0x94407c0f
+$44 = 0x8078800
+
+YVO
+(gdb) source ../gdb/ddr3_dump_mcp_udiag.gdb
+$1 = 0x46
+$2 = 0x0
+$3 = 0x1211000
+$4 = 0x1211000
+$5 = 0xa814205
+$6 = 0x44000020
+$7 = 0x0
+$8 = 0xf00f00f
+$9 = 0xf00f
+$10 = 0x2010020e
+$11 = 0x91128ca
+$12 = 0x5201a0a3
+$13 = 0x488626a
+$14 = 0x0
+$15 = 0x80400f
+$16 = 0x208
+$17 = 0x460f40
+$18 = 0xf0fc60
+$19 = 0xf0fc60
+$20 = 0x210666
+$21 = 0xffff0000
+$22 = 0xff22222
+$23 = 0x2000100
+$24 = 0x8000400
+$25 = 0x304007
+$26 = 0x304007
+$27 = 0x0
+$28 = 0x100b
+$29 = 0x6023
+$30 = 0x0
+$31 = 0x0
+$32 = 0x0
+$33 = 0x0
+$34 = 0x0
+$35 = 0x0
+$36 = 0x0
+$37 = 0x80000
+$38 = 0x0
+$39 = 0x10300018
+$40 = 0xf0003a
+$41 = 0xf0003a
+$42 = 0x7ffffff
+$43 = 0x95407c0f
+$44 = 0x4078800
