@@ -1,0 +1,68 @@
+#########################RNAA_86#########################
+# Keelback SOC
+#
+#
+#########################################################
+I) How to get source
+        1) Extract uboot source
+        $ tar xzf /release/keelback/cascade_up_1.05.05.tgz cascade_sw_up/uboot_src_cascade_1.05.05.tgz
+        $ tar xzf cascade_sw_up/uboot_src_cascade_1.05.05.tgz
+        2) Extract linux source
+        $ tar xzf /release/keelback/cascade_linux@38880.tgz
+        3) force sync up from P4
+        $ p4 sync -f ..
+
+II) To build
+        1) uboot
+        $ make rnaa86_[ocm|nand]_defconfig
+        $ make all
+        2) linux
+        $ make 44x/rnaa86_defconfig
+        $ make uImage
+        $ make rnaa-86.dtb
+
+III) Flash NAND uboot
+        BDI> config rnaa_ocm_fam.cfg
+        BDI> reset halt;load 0xfffc0000 u-boot-ocm.bin bin;go 0xfffffffc
+        BDI> halt;load 0x200000 u-boot-nand.bin bin;go
+        Alter to uboot ocm prompt
+        => nand scrube
+        => run nupdate
+        => reset
+
+IV) Release tracking
+        1) 2012/05/xx: release uboot, linux  is based on cascade_1.05.05 for bring up purpose.
+        2) 2012/05/23: release new uboot base on keelback@38880 for eth0, eth1 bridging issue and HBF2PLB bridges error message.
+
+
+#########################################################
+# uDiag
+#########################################################
+
+/user/hcm/bxnguyen/rnaa86/uDiag2-rnaa86
+res h;load 0xa0001000 yvo/rnaa_86/uDiag-rnaa86-ocm-nand.bin bin;go 0xa0001000
+h;load 0x2000000 yvo/rnaa_86/uDiag-rnaa86-ddr-nand.bin bin; go 0x2000000
+h;load 0x2000000 yvo/rnaa_86/uDiag-rnaa86-nand.bin bin;g
+
+tftp 0x2000000 yvo/rnaa_86/uDiag-rnaa86-ddr-nand.bin;go 0x2000000
+tftp 0x2000000 yvo/rnaa_86/uDiag-rnaa86-ddr-nand_1050.bin;go 0x2000000
+
+h; load 0x2000000 yvo/rnaa_86/uDiag-rnaa86-nand.bin bin;g
+h; load 0x2000000 yvo/rnaa_86/uDiag-rnaa86-nand_1050.bin bin;g
+
+#########################################################
+# u-boot
+#########################################################
+
+config yvo/rnaa_86/bdi/rnaa_ocm_fam.cfg 10.38.6.253
+config yvo/rnaa_86/bdi/rnaa_nand.cfg 10.38.6.253
+
+host 10.38.6.253;reset halt;load 0xfffc0000 yvo/rnaa_86/u-boot-ocm.bin bin;go 0xfffffffc
+halt;load 0x200000 yvo/rnaa_86/u-boot-nand.bin bin;go
+
+halt;load 0x200000 yvo/rnaa_86/debug/u-boot-nand.bin bin;go
+
+#########################################################
+# END
+#########################################################
+
