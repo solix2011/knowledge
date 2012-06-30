@@ -1,0 +1,24 @@
+#########################################################
+# Console Server
+#########################################################
+
+10.38.6.249:7010
+
+Power switch: 10.38.6.200
+Account: outlet2
+Password: qwerty
+
+- Choose 1- Device Manager
+- Choose 2- Outlet Management
+- Choose 1- Outlet Control/Configuration
+- Choose 1- Outlet 1
+Take actions:
+     1- Immediate On
+     2- Immediate Off
+     3- Immediate Reboot
+     4- Delayed On
+     5- Delayed Off
+     6- Delayed Reboot
+     7- Cancel
+Press <ESC>- Back anytime to get back the previous screen
+
