@@ -1,0 +1,187 @@
+#########################################################
+# Performance and loop scripts
+#########################################################
+- DDR: lmbench, mtest
+- Network: iperf
+- xdd, dd, robocopy
+- loop scripts: sd, ddr, jffs2.
+
+#########################################################
+# DDR
+#########################################################
+#--------------------------------------------------------
+# lmbench
+# /AMCC/yvo/working/draft/lmbench-3.0-a9
+#--------------------------------------------------------
+[himawari] # bw_mem 16M rd
+16.00 290.95
+[himawari] # bw_mem 64M rd
+64.00 290.98
+[himawari] # bw_mem 64M wr
+64.00 192.80
+[himawari] # bw_mem 64M rdwr
+64.00 200.79
+[himawari] # bw_mem 64M cp
+64.00 148.11
+[himawari] # bw_mem 64M fwr
+64.00 192.02
+[himawari] # bw_mem 64M frd
+64.00 254.40
+[himawari] # bw_mem 64M fcp
+64.00 147.84
+[himawari] # bw_mem 64M bzero
+64.00 696.31
+[himawari] # bw_mem 64M bcopy
+64.00 148.13
+
+#--------------------------------------------------------
+# uboot
+#--------------------------------------------------------
+#2GB
+mtest 10000 7FF00000
+
+#########################################################
+# Network
+#########################################################
+#--------------------------------------------------------
+# Infor
+#--------------------------------------------------------
+-FAST_MEMSET  enable/disable. (Select: Enable)
+-backlog = 30/1000. (Select 1000)
+-Net Filter
+
+Under Linux, there are two parameters that need to be changed.
+
+The maximum TCP send window size - /proc/sys/net/core/wmem_max
+echo 131072 > /proc/sys/net/core/wmem_max to set the max TCP send window size to 128 KiB.
+
+The maximum TCP receive window size - /proc/sys/net/core/rmem_max
+echo 131072 > /proc/sys/net/core/rmem_max to set the max TCP send window size to 128 KiB.
+
+
+#--------------------------------------------------------
+# CMDs
+#--------------------------------------------------------
+#TCP
+
+# iperf -m -s -i 1
+C:\> iperf -c 192.168.1.22 -w 64K -i 1 -t 30
+0.0-30.0 sec    346 MBytes  96.6 Mbits/sec
+
+C:\> iperf -m -s -i 1
+# iperf -c 192.168.1.88 -w 64K -i 1 -t 30
+0.0-30.0 sec   208 MBytes  58.1 Mbits/sec
+
+#UDP:
+Server:
+	iperf -s -u -w128k -i 4
+client:
+	iperf -c <ip> -u -w 128k -t 90 -i 4 -b 100M -d 
+	
+	
+# iperf -u -s -f m –w 64K -i 1
+C:\> iperf -u -c 192.168.1.22 -b 50m -i 1 -t 30
+0.0-30.0 sec    107 MBytes  29.9 Mbits/sec  0.384 ms 51268/127535 (40%)
+
+C:\> iperf -u -s -f m –w 64K -i 1
+# iperf -u -c 192.168.1.88 -b 50m -i 1 -t 30
+0.0-30.0 sec   134 MBytes  37.5 Mbits/sec  0.226 ms  0/95485 (0%)
+
+
+#########################################################
+# IO
+#########################################################
+#--------------------------------------------------------
+# xdd
+#--------------------------------------------------------
+
+# time ./xdd -op write -targets 1 /dev/sda -reqsize 1024 -numreqs 1024
+2m 22.82s, write rate = 1GB*8/(2*60+22.82)=57.36Mbps
+
+# time ./xdd -op read -targets 1 /dev/sda -reqsize 1024 -numreqs 1024
+1m 20.42s, read rate = 1GB*8/(1*60+20.42)=101.87Mbps
+
+
+xdd -op read -targets 1 /dev/sda1 -passes 3 -dio -blocksize 65536 -reqsize 1 -numreqs 65536 -verbose
+xdd -op write -targets 1 /dev/sda2 -passes 3 -dio -blocksize 65536 -reqsize 1 -numreqs 65536 -verbose -verify contents -datapattern random
+xdd -op write -targets 1 /dev/sda2 -passes 5 -dio -blocksize 65536 -reqsize 1 -numreqs 65536 -verbose
+xdd -op read -targets 1 /dev/sda3 -passes 3 -dio -blocksize 65536 -reqsize 1 -numreqs 65536 -verbose
+
+time xdd -op read -targets 1 /dev/sdb -reqsize 1 -numreqs 1
+
+#--------------------------------------------------------
+# robocopy
+#--------------------------------------------------------
+#--> Copy source to dest
+robocopy E:\data_4G Z:\ 
+
+#--------------------------------------------------------
+# dd
+#--------------------------------------------------------
+# time dd if=/dev/zero of=1G bs=1024 count=1048576
+3m 27.66s, write rate = 1GB*8/(3*60+27.66)=39.45Mbps
+
+# time dd if=1G of=/dev/null
+ 0m 57.64s, read rate = 1GB*8/(0*60+57.64)=142.12Mbps
+
+#########################################################
+# Loop test scripts
+#########################################################
+
+#SD CARD
+while true
+do
+echo "i=$i..."
+echo "Mount SD Card ...."
+mount  /dev/mmcblk0 /mnt/
+sleep 2
+echo "Copy data to SD Card ...."
+time dd if=/dev/zero bs=1M count=10 of=/mnt/sd.out skip=1
+ls -al /mnt/
+sleep 2
+echo "Delete data...."
+rm -rf /mnt/sd.out
+sleep 1
+echo "Umount SD Card ...."
+umount /mnt
+echo
+i=$(($i+1))
+done
+
+
+#DDR on Linux
+while true
+do
+echo "DDR i=$i..."
+time dd if=/dev/urandom of=/mnt/data.out bs=1M skip=1 count=40
+sleep 1
+ls -al /mnt/
+sleep 2
+echo "Delete data...."
+rm -rf /mnt/data.out
+sleep 1
+echo
+i=$(($i+1))
+done
+
+
+#NAND JFFS2
+while true
+do
+echo "NAND i=$i..."
+echo "Write ... file 20MB"
+time dd if=/dev/urandom of=/mnt/data.out bs=1M skip=1 count=20
+sleep 1
+ls -al /mnt/
+sleep 2
+echo "Delete ..."
+rm -rf /mnt/data.out
+sleep 1
+echo
+i=$(($i+1))
+done
+
+
+#########################################################
+# END
+#########################################################
